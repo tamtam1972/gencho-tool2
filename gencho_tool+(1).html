@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>現調入力ツール</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --border: #2d3148;
+    --accent: #4f7fff;
+    --accent2: #7c5fff;
+    --text: #e8eaf0;
+    --muted: #7a7f9a;
+    --input-bg: #12151f;
+    --danger: #ff4f6a;
+    --success: #4fff9a;
+    --warn: #ffb84f;
+    --radius: 10px;
+    --font: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+  header {
+    background: linear-gradient(135deg, #1a1d27, #0f1117);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.03em;
+  }
+  header p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .container { padding: 12px 12px 0; }
+
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .section-head {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(79,127,255,0.08);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    gap: 8px;
+  }
+  .section-head .icon { font-size: 16px; }
+  .section-head h2 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    flex: 1;
+    letter-spacing: 0.05em;
+  }
+  .section-head .chevron {
+    color: var(--muted);
+    font-size: 12px;
+    transition: transform 0.2s;
+  }
+  .section-head.collapsed .chevron { transform: rotate(-90deg); }
+  .section-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .section-body.hidden { display: none; }
+
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .field input, .field select, .field textarea {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    padding: 9px 11px;
+    width: 100%;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent);
+  }
+  .field textarea { min-height: 72px; resize: vertical; line-height: 1.5; }
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a7f9a'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  /* チェックボックス系 */
+  .check-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 11px;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+    transition: border-color 0.15s;
+  }
+  .check-item input[type=checkbox] { display: none; }
+  .check-item.checked { border-color: var(--accent); color: var(--accent); }
+  .check-item .cb-box {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--muted);
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .check-item.checked .cb-box {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .check-item.checked .cb-box::after { content: '✓'; font-size: 10px; color: #fff; font-weight: 700; }
+
+  /* ラジオ */
+  .radio-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .radio-item {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 11px;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+  }
+  .radio-item input[type=radio] { display: none; }
+  .radio-item.selected { border-color: var(--accent); color: var(--accent); }
+  .radio-dot {
+    width: 12px; height: 12px;
+    border: 1.5px solid var(--muted);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .radio-item.selected .radio-dot {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+
+  /* 在館日時 */
+  .zairkan-grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+  .zairkan-row { display: grid; grid-template-columns: 44px 1fr; gap: 6px; align-items: center; }
+  .zairkan-row .day-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 2px;
+  }
+  .zairkan-row .time-input { display: flex; align-items: center; gap: 3px; }
+  .zairkan-row .time-input select {
+    width: 54px;
+    padding: 7px 2px 7px 6px;
+    font-size: 14px;
+    text-align: center;
+    background-image: none;
+    padding-right: 6px;
+  }
+  .zairkan-row .time-input .colon { color: var(--muted); font-size: 15px; font-weight: 700; }
+  .zairkan-row .time-input .sep { width: 1px; height: 1px; background: none; margin: 0 4px; color: var(--muted); font-size: 12px; }
+  .zairkan-row .time-input .range-sep { color: var(--muted); font-size: 13px; margin: 0 4px; }
+  .zairkan-note { margin-top: 4px; }
+  select.time-sel {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    padding: 7px 4px;
+    width: 58px;
+    text-align: center;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    background-image: none;
+  }
+  select.time-sel:focus { border-color: var(--accent); }
+
+  /* ELV */
+  .elv-block {
+    background: rgba(79,127,255,0.05);
+    border: 1px solid rgba(79,127,255,0.2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+  }
+  .elv-block .elv-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+
+  /* 能動候補・エスカレーション */
+  .dynamic-block {
+    background: rgba(124,95,255,0.05);
+    border: 1px solid rgba(124,95,255,0.2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+  }
+  .dynamic-block .block-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 2px;
+  }
+
+  /* ボタン */
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    border: none; border-radius: 8px; cursor: pointer;
+    font-family: var(--font); font-weight: 700; padding: 10px 16px;
+    font-size: 14px; transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); opacity: 0.85; }
+  .btn-add { background: rgba(79,127,255,0.15); color: var(--accent); border: 1px solid rgba(79,127,255,0.3); width: 100%; }
+  .btn-remove { background: rgba(255,79,106,0.12); color: var(--danger); border: 1px solid rgba(255,79,106,0.25); font-size: 12px; padding: 5px 10px; }
+  .btn-copy {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    width: 100%;
+    font-size: 16px;
+    padding: 14px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(79,127,255,0.3);
+  }
+  .btn-clear { background: rgba(255,79,106,0.12); color: var(--danger); border: 1px solid rgba(255,79,106,0.25); width: 100%; font-size: 14px; padding: 11px; border-radius: 12px; }
+
+  .block-header { display: flex; align-items: center; justify-content: space-between; }
+
+  /* 電波 */
+  .denpa-row { display: grid; grid-template-columns: 70px 1fr 1fr; gap: 6px; align-items: center; }
+  .denpa-row .carrier-label {
+    font-size: 12px; color: var(--muted);
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 4px;
+    text-align: center;
+  }
+
+  /* コピーボタンエリア */
+  .copy-area {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 100;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--success);
+    color: #0a1a0f;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px 22px;
+    border-radius: 30px;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  .sep { height: 1px; background: var(--border); margin: 4px 0; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 現調入力ツール</h1>
+  <p>入力後「テキスト生成・コピー」でメール貼り付け</p>
+</header>
+
+<div class="container">
+
+<!-- 基本情報 -->
+<div class="section" id="sec-basic">
+  <div class="section-head" onclick="toggleSection('basic')">
+    <span class="icon">🏢</span>
+    <h2>基本情報</h2>
+    <span class="chevron" id="chev-basic">▼</span>
+  </div>
+  <div class="section-body" id="body-basic">
+    <div class="field"><label>物件名</label><input id="bukkenName" type="text" placeholder="例：藤和三田綱町ホームズ"></div>
+    <div class="field"><label>物件住所</label><input id="bukkenAddr" type="text" placeholder="例：東京都港区三田2-4-9"></div>
+    <div class="field"><label>確認日</label><input id="kakuninDate" type="date"></div>
+    <div class="row2">
+      <div class="field"><label>TEL</label><input id="tel" type="tel" placeholder="03-XXXX-XXXX"></div>
+      <div class="field"><label>FAX</label><input id="fax" type="tel" placeholder="TEL同 等"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 在館日時 -->
+<div class="section" id="sec-zaikan">
+  <div class="section-head" onclick="toggleSection('zaikan')">
+    <span class="icon">🕐</span>
+    <h2>在館日時</h2>
+    <span class="chevron" id="chev-zaikan">▼</span>
+  </div>
+  <div class="section-body" id="body-zaikan">
+    <div class="zairkan-grid" id="zaikanGrid"></div>
+    <div class="field zairkan-note"><label>在館備考</label><textarea id="zaikanNote" placeholder="例：土曜が休みの第1,3週目 火水木金は17:00まで" rows="2"></textarea></div>
+  </div>
+</div>
+
+<!-- オーダー -->
+<div class="section" id="sec-order">
+  <div class="section-head" onclick="toggleSection('order')">
+    <span class="icon">📝</span>
+    <h2>オーダー・担当</h2>
+    <span class="chevron" id="chev-order">▼</span>
+  </div>
+  <div class="section-body" id="body-order">
+    <div class="field">
+      <label>オーダー種別（複数可）</label>
+      <div class="check-group">
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="交換"><span class="cb-box"></span>交換</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="能動"><span class="cb-box"></span>能動</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="増設"><span class="cb-box"></span>増設</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="保守"><span class="cb-box"></span>保守</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="撤去"><span class="cb-box"></span>撤去</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>既存カメラ（導入会社）</label>
+      <div class="radio-group" id="existCamGroup">
+        <label class="radio-item" onclick="selectRadio(this,'existCam')"><input type="radio" name="existCam" value="C5"><span class="radio-dot"></span>C5</label>
+        <label class="radio-item" onclick="selectRadio(this,'existCam')"><input type="radio" name="existCam" value="他社"><span class="radio-dot"></span>他社</label>
+        <label class="radio-item" onclick="selectRadio(this,'existCam')"><input type="radio" name="existCam" value="不明"><span class="radio-dot"></span>不明</label>
+        <label class="radio-item" onclick="selectRadio(this,'existCam')"><input type="radio" name="existCam" value="なし"><span class="radio-dot"></span>なし</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>入館方法</label>
+      <div class="radio-group" id="nyukanGroup">
+        <label class="radio-item" onclick="selectRadio(this,'nyukan')"><input type="radio" name="nyukan" value="在館中"><span class="radio-dot"></span>在館中</label>
+        <label class="radio-item" onclick="selectRadio(this,'nyukan')"><input type="radio" name="nyukan" value="鍵預かり"><span class="radio-dot"></span>鍵預かり</label>
+        <label class="radio-item" onclick="selectRadio(this,'nyukan')"><input type="radio" name="nyukan" value="暗証番号"><span class="radio-dot"></span>暗証番号</label>
+        <label class="radio-item" onclick="selectRadio(this,'nyukan')"><input type="radio" name="nyukan" value="その他"><span class="radio-dot"></span>その他</label>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>現調担当（主幹）</label><input id="tanto" type="text" placeholder="例：平島"></div>
+      <div class="field"><label>同行</label><input id="doko" type="text" placeholder="なし / 氏名"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 既存システム -->
+<div class="section" id="sec-system">
+  <div class="section-head" onclick="toggleSection('system')">
+    <span class="icon">📷</span>
+    <h2>既存システム</h2>
+    <span class="chevron" id="chev-system">▼</span>
+  </div>
+  <div class="section-body" id="body-system">
+    <div class="field"><label>導入会社</label><input id="sysCompany" type="text" placeholder="例：C5"></div>
+    <div class="row3">
+      <div class="field"><label>実機カメラ</label><input id="camCount" type="text" placeholder="10台"></div>
+      <div class="field"><label>DM</label><input id="dmCount" type="text" placeholder="6台"></div>
+      <div class="field"><label>SL</label><input id="slCount" type="text" placeholder="11台"></div>
+    </div>
+    <div class="field"><label>SL型番・備考</label><input id="slNote" type="text" placeholder="例：LA-10PROLED→提案含む"></div>
+    <div class="field"><label>予想判別不明点</label><input id="fumeiPoint" type="text" placeholder="なし / 詳細"></div>
+  </div>
+</div>
+
+<!-- 機器設置状況 -->
+<div class="section" id="sec-kiki">
+  <div class="section-head" onclick="toggleSection('kiki')">
+    <span class="icon">🔧</span>
+    <h2>機器設置状況</h2>
+    <span class="chevron" id="chev-kiki">▼</span>
+  </div>
+  <div class="section-body" id="body-kiki">
+    <div class="field">
+      <label>C5-ITV録画確認</label>
+      <div class="radio-group" id="itvGroup">
+        <label class="radio-item" onclick="selectRadio(this,'itv')"><input type="radio" name="itv" value="OK"><span class="radio-dot"></span>OK</label>
+        <label class="radio-item" onclick="selectRadio(this,'itv')"><input type="radio" name="itv" value="NG"><span class="radio-dot"></span>NG</label>
+        <label class="radio-item" onclick="selectRadio(this,'itv')"><input type="radio" name="itv" value="なし"><span class="radio-dot"></span>なし</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>27型モニター設置</label>
+      <div class="radio-group" id="monitorGroup">
+        <label class="radio-item" onclick="selectRadio(this,'monitor')"><input type="radio" name="monitor" value="懸念なし"><span class="radio-dot"></span>懸念なし</label>
+        <label class="radio-item" onclick="selectRadio(this,'monitor')"><input type="radio" name="monitor" value="懸念あり"><span class="radio-dot"></span>懸念あり</label>
+        <label class="radio-item" onclick="selectRadio(this,'monitor')"><input type="radio" name="monitor" value="なし"><span class="radio-dot"></span>なし</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>既存画角状態</label>
+      <div class="radio-group" id="kakukuGroup">
+        <label class="radio-item" onclick="selectRadio(this,'kakuku')"><input type="radio" name="kakuku" value="問題なし"><span class="radio-dot"></span>問題なし</label>
+        <label class="radio-item" onclick="selectRadio(this,'kakuku')"><input type="radio" name="kakuku" value="要確認"><span class="radio-dot"></span>要確認</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>壁コンセント</label>
+      <div class="radio-group" id="consentGroup">
+        <label class="radio-item" onclick="selectRadio(this,'consent')"><input type="radio" name="consent" value="2m以内(延長ケーブル あり)"><span class="radio-dot"></span>2m以内(延長あり)</label>
+        <label class="radio-item" onclick="selectRadio(this,'consent')"><input type="radio" name="consent" value="2m以内(延長ケーブル なし)"><span class="radio-dot"></span>2m以内(延長なし)</label>
+        <label class="radio-item" onclick="selectRadio(this,'consent')"><input type="radio" name="consent" value="2m超"><span class="radio-dot"></span>2m超</label>
+        <label class="radio-item" onclick="selectRadio(this,'consent')"><input type="radio" name="consent" value="なし"><span class="radio-dot"></span>なし</label>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>既存高所</label>
+        <div class="radio-group" id="koshoGroup">
+          <label class="radio-item" onclick="selectRadio(this,'kosho')"><input type="radio" name="kosho" value="あり"><span class="radio-dot"></span>あり</label>
+          <label class="radio-item" onclick="selectRadio(this,'kosho')"><input type="radio" name="kosho" value="なし"><span class="radio-dot"></span>なし</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>既存難所</label>
+        <div class="radio-group" id="nanshoGroup">
+          <label class="radio-item" onclick="selectRadio(this,'nansho')"><input type="radio" name="nansho" value="あり"><span class="radio-dot"></span>あり</label>
+          <label class="radio-item" onclick="selectRadio(this,'nansho')"><input type="radio" name="nansho" value="なし"><span class="radio-dot"></span>なし</label>
+        </div>
+      </div>
+    </div>
+    <div class="field"><label>高所・難所 詳細</label><input id="koshoDetail" type="text" placeholder="例：cam5,SL"></div>
+    <div class="field">
+      <label>天井ドームカメラ浸水</label>
+      <div class="radio-group" id="shinsuitGroup">
+        <label class="radio-item" onclick="selectRadio(this,'shinsuit')"><input type="radio" name="shinsuit" value="なし"><span class="radio-dot"></span>なし</label>
+        <label class="radio-item" onclick="selectRadio(this,'shinsuit')"><input type="radio" name="shinsuit" value="あり"><span class="radio-dot"></span>あり</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>警備会社情報撮影</label>
+      <div class="radio-group" id="keibiGroup">
+        <label class="radio-item" onclick="selectRadio(this,'keibi')"><input type="radio" name="keibi" value="あり"><span class="radio-dot"></span>あり</label>
+        <label class="radio-item" onclick="selectRadio(this,'keibi')"><input type="radio" name="keibi" value="なし"><span class="radio-dot"></span>なし</label>
+      </div>
+    </div>
+    <div class="field"><label>完成図書</label><input id="kanseizusho" type="text" placeholder="例：ご参照 / なし"></div>
+    <div class="field"><label>機器設置状況 備考</label><textarea id="kikiNote" placeholder="その他特記事項" rows="2"></textarea></div>
+  </div>
+</div>
+
+<!-- ELV -->
+<div class="section" id="sec-elv">
+  <div class="section-head" onclick="toggleSection('elv')">
+    <span class="icon">🛗</span>
+    <h2>ELV</h2>
+    <span class="chevron" id="chev-elv">▼</span>
+  </div>
+  <div class="section-body" id="body-elv">
+    <div class="field"><label>ELV基数</label><input id="elvKisu" type="number" min="0" max="99" placeholder="例：3" style="width:100px;"></div>
+    <div class="field"><label>ELVメーカー</label><input id="elvMaker" type="text" placeholder="例：MITSUBISHI"></div>
+    <div class="row2">
+      <div class="field"><label>階床</label><input id="elvFloor" type="text" placeholder="例：5階"></div>
+      <div class="field"><label>保守会社</label><input id="elvHoshu" type="text" placeholder="例：マーキュリーエレベータ"></div>
+    </div>
+    <div class="field">
+      <label>既存カメラ</label>
+      <div class="radio-group" id="elvCamGroup">
+        <label class="radio-item" onclick="selectRadio(this,'elvCam')"><input type="radio" name="elvCam" value="なし"><span class="radio-dot"></span>なし</label>
+        <label class="radio-item" onclick="selectRadio(this,'elvCam')"><input type="radio" name="elvCam" value="あり"><span class="radio-dot"></span>あり</label>
+      </div>
+    </div>
+    <div class="field"><label>ELV備考</label><input id="elvNote" type="text" placeholder="備考"></div>
+  </div>
+</div>
+
+<!-- 電波強度 -->
+<div class="section" id="sec-denpa">
+  <div class="section-head" onclick="toggleSection('denpa')">
+    <span class="icon">📡</span>
+    <h2>電波強度測定値</h2>
+    <span class="chevron" id="chev-denpa">▼</span>
+  </div>
+  <div class="section-body" id="body-denpa">
+    <div class="field"><label>測定場所</label><input id="denpaPlace" type="text" placeholder="例：モニター前"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:grid;grid-template-columns:62px 1fr 1fr;gap:6px;align-items:center;">
+        <div></div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;">dBm</div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;">RSRQ dB</div>
+      </div>
+      <div style="display:grid;grid-template-columns:62px 1fr 1fr;gap:6px;align-items:center;">
+        <div class="carrier-label">ドコモ</div>
+        <div class="field" style="position:relative;">
+          <input id="docomo_rssi" type="text" inputmode="decimal" placeholder="-108">
+        </div>
+        <div class="field" style="position:relative;">
+          <input id="docomo_rsrq" type="text" inputmode="decimal" placeholder="-11">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:62px 1fr 1fr;gap:6px;align-items:center;">
+        <div class="carrier-label">au</div>
+        <div class="field">
+          <input id="au_rssi" type="text" inputmode="decimal" placeholder="-91">
+        </div>
+        <div class="field">
+          <input id="au_rsrq" type="text" inputmode="decimal" placeholder="-8">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:62px 1fr 1fr;gap:6px;align-items:center;">
+        <div class="carrier-label">SB</div>
+        <div class="field">
+          <input id="sb_rssi" type="text" inputmode="decimal" placeholder="-103">
+        </div>
+        <div class="field">
+          <input id="sb_rsrq" type="text" inputmode="decimal" placeholder="-9">
+        </div>
+      </div>
+    </div>
+    <div class="field"><label>電波備考</label><textarea id="denpaNote" placeholder="例：管理室窓外LTE設置BOX上測定あり" rows="2"></textarea></div>
+  </div>
+</div>
+
+<!-- ヒアリング -->
+<div class="section" id="sec-hearing">
+  <div class="section-head" onclick="toggleSection('hearing')">
+    <span class="icon">💬</span>
+    <h2>現地ヒアリング</h2>
+    <span class="chevron" id="chev-hearing">▼</span>
+  </div>
+  <div class="section-body" id="body-hearing">
+    <div class="field">
+      <label>TV視聴接続</label>
+      <div class="radio-group" id="tvGroup">
+        <label class="radio-item" onclick="selectRadio(this,'tv')"><input type="radio" name="tv" value="なし"><span class="radio-dot"></span>なし</label>
+        <label class="radio-item" onclick="selectRadio(this,'tv')"><input type="radio" name="tv" value="あり"><span class="radio-dot"></span>あり</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>トラブル</label>
+      <div class="radio-group" id="troubleGroup">
+        <label class="radio-item" onclick="selectRadio(this,'trouble')"><input type="radio" name="trouble" value="なし"><span class="radio-dot"></span>なし</label>
+        <label class="radio-item" onclick="selectRadio(this,'trouble')"><input type="radio" name="trouble" value="あり"><span class="radio-dot"></span>あり</label>
+      </div>
+    </div>
+    <div class="field"><label>管理員ヒアリング内容</label><textarea id="hearingNote" placeholder="例：毎年8月頃来ていた定期点検が2025年なかったので保守切れたとは思っていた" rows="3"></textarea></div>
+  </div>
+</div>
+
+<!-- 指定事項 -->
+<div class="section" id="sec-shitei">
+  <div class="section-head" onclick="toggleSection('shitei')">
+    <span class="icon">📌</span>
+    <h2>指定事項</h2>
+    <span class="chevron" id="chev-shitei">▼</span>
+  </div>
+  <div class="section-body" id="body-shitei">
+    <div class="field"><textarea id="shiteiNote" placeholder="なし / 詳細" rows="2"></textarea></div>
+  </div>
+</div>
+
+<!-- 能動候補 -->
+<div class="section" id="sec-nodo">
+  <div class="section-head" onclick="toggleSection('nodo')">
+    <span class="icon">🎯</span>
+    <h2>能動候補</h2>
+    <span class="chevron" id="chev-nodo">▼</span>
+  </div>
+  <div class="section-body" id="body-nodo">
+    <div class="field">
+      <label>通常出入死角</label>
+      <div class="radio-group" id="sikakuGroup">
+        <label class="radio-item" onclick="selectRadio(this,'sikaku')"><input type="radio" name="sikaku" value="なし"><span class="radio-dot"></span>なし</label>
+        <label class="radio-item" onclick="selectRadio(this,'sikaku')"><input type="radio" name="sikaku" value="あり"><span class="radio-dot"></span>あり</label>
+      </div>
+    </div>
+    <div id="nodoList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <button class="btn btn-add" onclick="addNodo()">＋ 能動候補追加</button>
+  </div>
+</div>
+
+<!-- エスカレーション -->
+<div class="section" id="sec-esca">
+  <div class="section-head" onclick="toggleSection('esca')">
+    <span class="icon">⚠️</span>
+    <h2>エスカレーション</h2>
+    <span class="chevron" id="chev-esca">▼</span>
+  </div>
+  <div class="section-body" id="body-esca">
+    <div class="row2">
+      <div class="field">
+        <label>配管補修</label>
+        <div class="radio-group" id="haikGroup">
+          <label class="radio-item" onclick="selectRadio(this,'haik')"><input type="radio" name="haik" value="無"><span class="radio-dot"></span>無</label>
+          <label class="radio-item" onclick="selectRadio(this,'haik')"><input type="radio" name="haik" value="有"><span class="radio-dot"></span>有</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>車両移動</label>
+        <div class="radio-group" id="sharyoGroup">
+          <label class="radio-item" onclick="selectRadio(this,'sharyo')"><input type="radio" name="sharyo" value="無"><span class="radio-dot"></span>無</label>
+          <label class="radio-item" onclick="selectRadio(this,'sharyo')"><input type="radio" name="sharyo" value="有"><span class="radio-dot"></span>有</label>
+        </div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>専有部作業</label>
+        <div class="radio-group" id="senyuGroup">
+          <label class="radio-item" onclick="selectRadio(this,'senyu')"><input type="radio" name="senyu" value="無"><span class="radio-dot"></span>無</label>
+          <label class="radio-item" onclick="selectRadio(this,'senyu')"><input type="radio" name="senyu" value="有"><span class="radio-dot"></span>有</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>外部モニター</label>
+        <div class="radio-group" id="gaibuGroup">
+          <label class="radio-item" onclick="selectRadio(this,'gaibu')"><input type="radio" name="gaibu" value="無"><span class="radio-dot"></span>無</label>
+          <label class="radio-item" onclick="selectRadio(this,'gaibu')"><input type="radio" name="gaibu" value="有"><span class="radio-dot"></span>有</label>
+        </div>
+      </div>
+    </div>
+    <div class="field"><label>汎用外金具</label><input id="gaikanagu" type="text" placeholder="なし / 詳細"></div>
+    <div id="escaList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <button class="btn btn-add" onclick="addEsca()">＋ エスカレーション追加</button>
+    <div class="field"><label>エスカレーション備考</label><textarea id="escaNote" placeholder="例：能動1でプランB作成します" rows="2"></textarea></div>
+  </div>
+</div>
+
+<!-- フォーム内に不足していた項目など -->
+<div class="section" id="sec-other">
+  <div class="section-head" onclick="toggleSection('other')">
+    <span class="icon">📎</span>
+    <h2>その他・フリーメモ</h2>
+    <span class="chevron" id="chev-other">▼</span>
+  </div>
+  <div class="section-body" id="body-other">
+    <div class="field"><textarea id="otherNote" placeholder="追加特記事項など" rows="4"></textarea></div>
+  </div>
+</div>
+
+<!-- 余白 -->
+<div style="height:110px;"></div>
+
+</div><!-- /container -->
+
+<div class="copy-area">
+  <button class="btn btn-copy" onclick="generateAndCopy()">📋 テキスト生成・コピー</button>
+  <button class="btn btn-clear" onclick="clearAll()">🗑 全クリア</button>
+</div>
+
+<div class="toast" id="toast">✅ クリップボードにコピーしました</div>
+
+<script>
+// ===== セクション開閉 =====
+function toggleSection(id) {
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chev-' + id);
+  const head = chev.closest('.section-head');
+  body.classList.toggle('hidden');
+  head.classList.toggle('collapsed');
+}
+
+// ===== チェックボックス =====
+function toggleCheck(el) {
+  const cb = el.querySelector('input[type=checkbox]');
+  cb.checked = !cb.checked;
+  el.classList.toggle('checked', cb.checked);
+}
+
+// ===== ラジオ =====
+function selectRadio(el, name) {
+  const group = el.closest('.radio-group');
+  group.querySelectorAll('.radio-item').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input[type=radio]').checked = true;
+}
+
+// ===== 在館日時 =====
+const DAYS = ['月', '火', '水', '木', '金', '土', '日'];
+const HOURS = Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
+const MINS = ['00','05','10','15','20','25','30','35','40','45','50','55'];
+function makeTimeSelects(prefix) {
+  const hOpts = '<option value=""></option>' + HOURS.map(h=>'<option value="'+h+'">'+h+'</option>').join('');
+  const mOpts = MINS.map(m=>'<option value="'+m+'">'+m+'</option>').join('');
+  return '<select id="'+prefix+'_h" class="time-sel">'+hOpts+'</select><span class="colon">:</span><select id="'+prefix+'_m" class="time-sel">'+mOpts+'</select>';
+}
+function getTime(prefix) {
+  const h = document.getElementById(prefix+'_h') ? document.getElementById(prefix+'_h').value : '';
+  const m = document.getElementById(prefix+'_m') ? document.getElementById(prefix+'_m').value : '00';
+  if (!h) return '';
+  return h + ':' + (m||'00');
+}
+function buildZaikan() {
+  const grid = document.getElementById('zaikanGrid');
+  grid.innerHTML = '';
+  DAYS.forEach(function(d) {
+    const row = document.createElement('div');
+    row.className = 'zairkan-row';
+    row.innerHTML = '<div class="day-label">'+d+'</div><div class="time-input">'+makeTimeSelects('zs_'+d)+'<span class="range-sep">〜</span>'+makeTimeSelects('ze_'+d)+'</div>';
+    grid.appendChild(row);
+  });
+}
+
+// ===== 能動候補 =====
+let elvCount = 0;
+let nodoCount = 0;
+const NODO_TYPES = ['増設', '実機化', '移設', '撤去'];
+const NODO_PLANS = ['A', 'B', 'C', '撮影のみ'];
+function addNodo() {
+  nodoCount++;
+  const n = nodoCount;
+  const div = document.createElement('div');
+  div.className = 'dynamic-block';
+  div.id = 'nodo-' + n;
+  div.innerHTML = `
+    <div class="block-header">
+      <div class="block-title">能動候補 ${n}</div>
+      <button class="btn btn-remove" onclick="removeBlock('nodo-${n}')">削除</button>
+    </div>
+    <div class="field"><label>場所・名称</label><input type="text" id="nodo${n}_place" placeholder="例：エントランスホール"></div>
+    <div class="row2">
+      <div class="field"><label>種別</label><select id="nodo${n}_type">
+        <option value="">選択</option>
+        ${NODO_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}
+      </select></div>
+      <div class="field"><label>プラン</label><select id="nodo${n}_plan">
+        <option value="">選択</option>
+        ${NODO_PLANS.map(t=>`<option value="${t}">${t}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="field"><label>目的</label><input type="text" id="nodo${n}_mokuteki" placeholder="例：建物内行動警戒"></div>
+    <div class="field"><label>配線</label><input type="text" id="nodo${n}_haisen" placeholder="例：30m以内"></div>
+    <div class="field"><label>備考</label><input type="text" id="nodo${n}_note" placeholder="備考"></div>
+  `;
+  document.getElementById('nodoList').appendChild(div);
+}
+
+// ===== エスカレーション =====
+let escaCount = 0;
+function addEsca() {
+  escaCount++;
+  const n = escaCount;
+  const div = document.createElement('div');
+  div.className = 'dynamic-block';
+  div.id = 'esca-' + n;
+  div.innerHTML = `
+    <div class="block-header">
+      <div class="block-title">エスカレーション ${n}</div>
+      <button class="btn btn-remove" onclick="removeBlock('esca-${n}')">削除</button>
+    </div>
+    <div class="field"><label>種別・内容</label><input type="text" id="esca${n}_type" placeholder="例：配管補修"></div>
+    <div class="field"><label>詳細</label><textarea id="esca${n}_detail" placeholder="例：cam8付近、DMポール近く" rows="2"></textarea></div>
+  `;
+  document.getElementById('escaList').appendChild(div);
+}
+
+function removeBlock(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// ===== ヘルパー =====
+function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function radioVal(name) {
+  const el = document.querySelector(`input[name="${name}"]:checked`);
+  return el ? el.value : '';
+}
+function checkedVals(selector) {
+  return Array.from(document.querySelectorAll(selector + ':checked')).map(e => e.value);
+}
+function line(label, value, suffix='') {
+  if (!value) return '';
+  return `・${label}  ${value}${suffix}\n`;
+}
+function optLine(label, value) {
+  return value ? `・${label}  ${value}\n` : `・${label}  —\n`;
+}
+
+// ===== テキスト生成 =====
+function generateText() {
+  let t = '';
+
+  // 基本情報
+  t += `物件名：${val('bukkenName')}\n`;
+  t += `物件住所：${val('bukkenAddr')}\n`;
+  t += `管理室情報 確認日：${val('kakuninDate')}\n`;
+  t += `TEL：${val('tel')}\n`;
+  t += `FAX：${val('fax')}\n`;
+
+  // 在館日時
+  let zaikanLines = [];
+  DAYS.forEach(d => {
+    const s = getTime('zs_'+d);
+    const e = getTime('ze_'+d);
+    if (s || e) zaikanLines.push(d + (s && e ? s+'〜'+e : (s||e)));
+  });
+  if (zaikanLines.length) t += '在館日時：' + zaikanLines.join('　') + '\n';
+  const zaikanNote = val('zaikanNote');
+  if (zaikanNote) t += '※' + zaikanNote + '\n';
+
+  // オーダー
+  t += '\n';
+  const orders = checkedVals('.check-item input[type=checkbox]');
+  if (orders.length) t += `オーダー：${orders.join('＋')}\n`;
+  const existCam = radioVal('existCam');
+  if (existCam) t += `既存カメラ：${existCam}\n`;
+  const nyukan = radioVal('nyukan');
+  if (nyukan) t += `入館方法：${nyukan}\n`;
+  t += `現調担当(主幹)：${val('tanto') || '—'}\n`;
+  t += `同行：${val('doko') || '—'}\n`;
+
+  // 既存システム
+  t += '\n◇既存システム\n';
+  t += `・導入会社  ${val('sysCompany') || '—'}\n`;
+  if (val('camCount')) t += `・実機カメラ  ${val('camCount')}\n`;
+  if (val('dmCount')) t += `・DM  ${val('dmCount')}\n`;
+  if (val('slCount')) {
+    t += `・SL  ${val('slCount')}`;
+    if (val('slNote')) t += `  ${val('slNote')}`;
+    t += '\n';
+  }
+  if (val('fumeiPoint')) t += `・予想判別不明点  ${val('fumeiPoint')}\n`;
+
+  // 機器設置状況
+  t += '\n◇機器設置状況\n';
+  if (val('kanseizusho')) t += `完成図書：${val('kanseizusho')}\n`;
+  const itv = radioVal('itv'); if (itv) t += `・C5-ITV録画確認  ${itv}\n`;
+  const monitor = radioVal('monitor'); if (monitor) t += `・27型モニター設置  ${monitor}\n`;
+  const kakuku = radioVal('kakuku'); if (kakuku) t += `・既存画角状態  ${kakuku}\n`;
+  const consent = radioVal('consent'); if (consent) t += `・壁コンセント  ${consent}\n`;
+  const kosho = radioVal('kosho'); if (kosho) t += `・既存高所  ${kosho}\n`;
+  const nansho = radioVal('nansho'); if (nansho) t += `・既存難所  ${nansho}\n`;
+  if (val('koshoDetail')) t += `→${val('koshoDetail')}\n`;
+  const shinsuit = radioVal('shinsuit'); if (shinsuit) t += `・天井ドームカメラ浸水  ${shinsuit}\n`;
+  const keibi = radioVal('keibi'); if (keibi) t += `・警備会社情報撮影  ${keibi}\n`;
+  if (val('kikiNote')) t += `・備考  ${val('kikiNote')}\n`;
+
+  // ELV
+  const elvKisu = val('elvKisu');
+  if (elvKisu) {
+    t += '\n◇ELV  ' + elvKisu + '基\n';
+    if (val('elvMaker')) t += 'ELVメーカー：' + val('elvMaker') + '\n';
+    if (val('elvFloor')) t += '階床：' + val('elvFloor') + '\n';
+    const elvCam = radioVal('elvCam'); if (elvCam) t += '・既存カメラ  ' + elvCam + '\n';
+    if (val('elvHoshu')) t += '・保守  ' + val('elvHoshu') + '\n';
+    if (val('elvNote')) t += '・備考  ' + val('elvNote') + '\n';
+  }
+
+  // 電波強度
+  t += '\n◇電波強度測定値(dBm)';
+  if (val('denpaPlace')) t += ' ：' + val('denpaPlace');
+  t += '\n';
+  function denpaLine(carrier, rssiId, rsrqId) {
+    const rssi = val(rssiId);
+    const rsrq = val(rsrqId);
+    if (!rssi && !rsrq) return '';
+    let s = '・' + carrier + '  ';
+    if (rssi) s += rssi + ' dBm';
+    if (rsrq) s += (rssi ? '  ' : '') + '[ RSRQ ' + rsrq + ' dB ]';
+    return s + '\n';
+  }
+  t += denpaLine('ドコモ', 'docomo_rssi', 'docomo_rsrq');
+  t += denpaLine('au', 'au_rssi', 'au_rsrq');
+  t += denpaLine('ソフトバンク', 'sb_rssi', 'sb_rsrq');
+  if (val('denpaNote')) t += '※' + val('denpaNote') + '\n';
+
+  // ヒアリング
+  t += '\n◇現地ヒアリング\n管理員様\n';
+  const tv = radioVal('tv'); if (tv) t += `・TV視聴  接続${tv}\n`;
+  const trouble = radioVal('trouble'); if (trouble) t += `・トラブル  ${trouble}\n`;
+  if (val('hearingNote')) t += val('hearingNote') + '\n';
+
+  // 指定事項
+  t += '\n◇指定事項\n';
+  t += (val('shiteiNote') || 'なし') + '\n';
+
+  // 能動候補
+  const nodoBlocks = document.querySelectorAll('[id^="nodo-"]');
+  if (nodoBlocks.length > 0) {
+    t += '\n◇能動候補\n';
+    const sikaku = radioVal('sikaku'); if (sikaku) t += `通常出入死角　${sikaku}\n`;
+    nodoBlocks.forEach((b, i) => {
+      const n = b.id.replace('nodo-', '');
+      const place = val(`nodo${n}_place`);
+      const type = val(`nodo${n}_type`) || document.getElementById(`nodo${n}_type`)?.value;
+      const plan = val(`nodo${n}_plan`) || document.getElementById(`nodo${n}_plan`)?.value;
+      t += `${i+1}.【${place}】(${type})${plan ? plan : ''}\n`;
+      if (val(`nodo${n}_mokuteki`)) t += `目的：${val(`nodo${n}_mokuteki`)}\n`;
+      if (val(`nodo${n}_haisen`)) t += `配線：${val(`nodo${n}_haisen`)}\n`;
+      if (val(`nodo${n}_note`)) t += `※${val(`nodo${n}_note`)}\n`;
+    });
+  }
+
+  // エスカレーション
+  t += '\n◇エスカレーション\n';
+  const haik = radioVal('haik'); if (haik) t += `配管補修：${haik === '有' ? '営業現調発見 有' : '無'}\n`;
+  const sharyo = radioVal('sharyo'); if (sharyo) t += `車両移動：${sharyo}\n`;
+  const senyu = radioVal('senyu'); if (senyu) t += `専有部作業：${senyu}\n`;
+  const gaibu = radioVal('gaibu'); if (gaibu) t += `外部モニター：${gaibu}\n`;
+  if (val('gaikanagu')) t += `・汎用外金具  ${val('gaikanagu')}\n`;
+
+  const escaBlocks = document.querySelectorAll('[id^="esca-"]');
+  escaBlocks.forEach(b => {
+    const n = b.id.replace('esca-', '');
+    if (val(`esca${n}_type`)) t += `・${val(`esca${n}_type`)}\n`;
+    if (val(`esca${n}_detail`)) t += `${val(`esca${n}_detail`)}\n`;
+  });
+  if (val('escaNote')) t += val('escaNote') + '\n';
+
+  // その他
+  if (val('otherNote')) t += '\n' + val('otherNote') + '\n';
+
+  return t.trim();
+}
+
+// ===== コピー =====
+async function generateAndCopy() {
+  const text = generateText();
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✅ クリップボードにコピーしました');
+  } catch(e) {
+    // fallback for older Safari
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ コピーしました');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ===== 全クリア =====
+function clearAll() {
+  if (!confirm('全項目をクリアしますか？')) return;
+  document.querySelectorAll('input[type=text], input[type=tel], input[type=date], input[type=number], textarea').forEach(el => el.value = '');
+  document.querySelectorAll('input[type=checkbox]').forEach(el => {
+    el.checked = false;
+    el.closest('.check-item')?.classList.remove('checked');
+  });
+  document.querySelectorAll('input[type=radio]').forEach(el => {
+    el.checked = false;
+    el.closest('.radio-item')?.classList.remove('selected');
+  });
+  document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+  document.getElementById('elvList') && (document.getElementById('elvList').innerHTML = '');
+  document.getElementById('nodoList').innerHTML = '';
+  document.getElementById('escaList').innerHTML = '';
+  elvCount = 0; nodoCount = 0; escaCount = 0;
+  buildZaikan();
+}
+
+// ===== 初期化 =====
+buildZaikan();
+const today = new Date();
+const ymd = today.toISOString().slice(0,10);
+document.getElementById('kakuninDate').value = ymd;
+</script>
+</body>
+</html>
